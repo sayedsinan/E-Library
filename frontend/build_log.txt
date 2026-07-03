@@ -1,0 +1,52 @@
+Running Gradle task 'assembleDebug'...                          
+Warning: Flutter support for your project's Android Gradle Plugin version (Android Gradle Plugin version 8.9.1) will soon be dropped. Please upgrade your Android Gradle Plugin version to a version of at least Android Gradle Plugin version 8.11.1 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's AGP version is typically defined in the plugins block of the `settings.gradle` file (D:\ebook_library\ebook_library\frontend\android/settings.gradle), by a plugin with the id of com.android.application. 
+If you don't see a plugins block, your project was likely created with an older template version. In this case it is most likely defined in the top-level build.gradle file (D:\ebook_library\ebook_library\frontend\android/build.gradle) by the following line in the dependencies block of the buildscript: "classpath 'com.android.tools.build:gradle:<version>'".
+
+WARNING: Your app uses the following plugins that apply Kotlin Gradle Plugin (KGP): device_info_plus
+Future versions of Flutter will fail to build if your app uses plugins that apply KGP.
+
+Please check the changelogs of these plugins and upgrade to a version that supports Built-in Kotlin.
+If no such version exists, report the issue to the plugin. If necessary, here is a guide on filing 
+an issue against a plugin: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers#report-incompatible-kotlin-gradle-plugin-usage-to-plugin-authors
+
+If you are a plugin author, please migrate your plugin to Built-in Kotlin using this guide: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors
+C:\Users\sinan\AppData\Local\Pub\Cache\hosted\pub.dev\syncfusion_flutter_pdfviewer-25.2.7\android\src\main\java\com\syncfusion\flutter\pdfviewer\SyncfusionFlutterPdfViewerPlugin.java:74: error: cannot find symbol
+  public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
+                                                                         ^
+  symbol:   class Registrar
+  location: interface PluginRegistry
+1 error
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':syncfusion_flutter_pdfviewer:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler output below.
+  C:\Users\sinan\AppData\Local\Pub\Cache\hosted\pub.dev\syncfusion_flutter_pdfviewer-25.2.7\android\src\main\java\com\syncfusion\flutter\pdfviewer\SyncfusionFlutterPdfViewerPlugin.java:74: error: cannot find symbol
+    public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
+                                                                           ^
+    symbol:   class Registrar
+    location: interface PluginRegistry
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+BUILD FAILED in 25s
+Running Gradle task 'assembleDebug'...                             25.6s
+
+┌─ Flutter Fix ───────────────────────────────────────────────────────────────────────────────────┐
+│ [!] Consult the error logs above to identify any broken plugins, specifically those containing  │
+│ "error: cannot find symbol..."                                                                  │
+│ This issue is likely caused by v1 embedding removal and the plugin's continued usage of removed │
+│ references to the v1 embedding.                                                                 │
+│ To fix this error, please upgrade your current package's dependencies to latest versions by     │
+│ running `flutter pub upgrade`.                                                                  │
+│ If that does not work, please file an issue for the problematic plugin(s) here:                 │
+│ https://github.com/flutter/flutter/issues                                                       │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+Gradle task assembleDebug failed with exit code 1
