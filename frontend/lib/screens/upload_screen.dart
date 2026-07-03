@@ -1,8 +1,10 @@
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../controllers/upload_controller.dart';
+import '../core/theme/app_colors.dart';
 import '../providers/ebook_provider.dart';
+import '../widgets/common/app_snackbar.dart';
+import '../widgets/upload/file_picker_zone.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -12,77 +14,36 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
+  late final UploadController _controller;
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _authorController = TextEditingController();
 
-  File? _pickedFile;
-  String? _fileType; // 'pdf' | 'epub'
-  String? _pickError;
+  @override
+  void initState() {
+    super.initState();
+    _controller = UploadController();
+    _controller.addListener(_onControllerChanged);
+  }
 
-  static const _maxBytes = 100 * 1024 * 1024; // matches backend limit
+  void _onControllerChanged() => setState(() {});
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _authorController.dispose();
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickFile() async {
-    setState(() => _pickError = null);
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'epub'],
-    );
-    if (result == null || result.files.single.path == null) return;
-
-    final path = result.files.single.path!;
-    final file = File(path);
-    final size = await file.length();
-    final ext = path.split('.').last.toLowerCase();
-
-    if (size > _maxBytes) {
-      setState(() => _pickError = 'File is too large (max 100MB).');
-      return;
-    }
-    if (ext != 'pdf' && ext != 'epub') {
-      setState(() => _pickError = 'Only PDF and EPUB files are supported.');
-      return;
-    }
-
-    setState(() {
-      _pickedFile = file;
-      _fileType = ext;
-      if (_titleController.text.isEmpty) {
-        final name = path.split('/').last.replaceAll('.$ext', '');
-        _titleController.text = name;
-      }
-    });
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_pickedFile == null) {
-      setState(() => _pickError = 'Please choose a PDF or EPUB file.');
-      return;
-    }
 
     final provider = context.read<EbookProvider>();
-    final ok = await provider.upload(
-      file: _pickedFile!,
-      title: _titleController.text.trim(),
-      author: _authorController.text.trim().isEmpty ? null : _authorController.text.trim(),
-      fileType: _fileType!,
-    );
+    final result = await _controller.submit(provider);
 
     if (!mounted) return;
-    if (ok) {
+    if (result.success) {
       Navigator.pop(context, true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.errorMessage ?? 'Upload failed.')),
-      );
+      showAppSnackBar(context, result.message!, isError: true);
     }
   }
 
@@ -91,52 +52,97 @@ class _UploadScreenState extends State<UploadScreen> {
     final uploading = context.watch<EbookProvider>().uploading;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload Ebook')),
-      body: AbsorbPointer(
-        absorbing: uploading,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _pickFile,
-                  icon: const Icon(Icons.upload_file),
-                  label: Text(_pickedFile == null
-                      ? 'Choose PDF or EPUB'
-                      : _pickedFile!.path.split('/').last),
+      appBar: AppBar(
+        title: const Text('Add New Book'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          AbsorbPointer(
+            absorbing: uploading,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Upload an ebook',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Add a PDF or EPUB to your personal library.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 28),
+                    FilePickerZone(
+                      fileName: _controller.fileName,
+                      error: _controller.pickError,
+                      onPick: _controller.pickFile,
+                    ),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _controller.titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        prefixIcon: Icon(Icons.title_rounded),
+                      ),
+                      validator: _controller.validateTitle,
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _controller.authorController,
+                      decoration: const InputDecoration(
+                        labelText: 'Author (optional)',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: uploading ? null : _submit,
+                      child: uploading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                            )
+                          : const Text('Upload to Library'),
+                    ),
+                  ],
                 ),
-                if (_pickError != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(_pickError!, style: const TextStyle(color: Colors.red)),
-                  ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(labelText: 'Title *', border: OutlineInputBorder()),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Title is required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _authorController,
-                  decoration: const InputDecoration(labelText: 'Author (optional)', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: uploading ? null : _submit,
-                  child: uploading
-                      ? const SizedBox(
-                          height: 20, width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Upload'),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          if (uploading)
+            Container(
+              color: Colors.black26,
+              child: const Center(
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(color: AppColors.primary),
+                        SizedBox(height: 16),
+                        Text('Uploading your book…'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

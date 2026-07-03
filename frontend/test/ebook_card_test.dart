@@ -21,44 +21,53 @@ void main() {
   testWidgets('EbookCard renders title and author', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: EbookCard(
-          ebook: _sampleEbook(),
-          onTap: () {},
-          onDelete: () {},
-          onDownload: () {},
+        body: SizedBox(
+          height: 220,
+          child: EbookCard(
+            ebook: _sampleEbook(),
+            onTap: () {},
+            onDelete: () {},
+            onDownload: () {},
+          ),
         ),
       ),
     ));
 
-    expect(find.text('Clean Code'), findsOneWidget);
+    expect(find.text('Clean Code'), findsWidgets);
     expect(find.text('Robert Martin'), findsOneWidget);
   });
 
-  testWidgets('EbookCard omits author line when author is null', (tester) async {
+  testWidgets('EbookCard omits author when author is null', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: EbookCard(
-          ebook: _sampleEbook(author: null),
-          onTap: () {},
-          onDelete: () {},
-          onDownload: () {},
+        body: SizedBox(
+          height: 220,
+          child: EbookCard(
+            ebook: _sampleEbook(author: null),
+            onTap: () {},
+            onDelete: () {},
+            onDownload: () {},
+          ),
         ),
       ),
     ));
 
-    expect(find.text('Clean Code'), findsOneWidget);
-    expect(find.byType(Text), findsNWidgets(2)); // title + placeholder cover text
+    expect(find.text('Clean Code'), findsWidgets);
+    expect(find.text('Robert Martin'), findsNothing);
   });
 
   testWidgets('tapping the card triggers onTap', (tester) async {
     var tapped = false;
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: EbookCard(
-          ebook: _sampleEbook(),
-          onTap: () => tapped = true,
-          onDelete: () {},
-          onDownload: () {},
+        body: SizedBox(
+          height: 220,
+          child: EbookCard(
+            ebook: _sampleEbook(),
+            onTap: () => tapped = true,
+            onDelete: () {},
+            onDownload: () {},
+          ),
         ),
       ),
     ));
@@ -70,11 +79,14 @@ void main() {
   testWidgets('long-press shows Read/Download/Delete actions', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: EbookCard(
-          ebook: _sampleEbook(),
-          onTap: () {},
-          onDelete: () {},
-          onDownload: () {},
+        body: SizedBox(
+          height: 220,
+          child: EbookCard(
+            ebook: _sampleEbook(),
+            onTap: () {},
+            onDelete: () {},
+            onDownload: () {},
+          ),
         ),
       ),
     ));

@@ -1,16 +1,19 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/ebook.dart';
 import '../services/api_service.dart';
 
 enum LoadStatus { initial, loading, loaded, error }
 
+enum SortOrder { newest, oldest, titleAZ, authorAZ }
+
+enum FileTypeFilter { all, pdf, epub }
+
 class EbookProvider extends ChangeNotifier {
   final ApiService _api;
   EbookProvider({ApiService? api}) : _api = api ?? ApiService();
 
   List<Ebook> _ebooks = [];
-  List<Ebook> get ebooks => _ebooks;
+  List<Ebook> get ebooks => _applyFilters(_ebooks);
 
   LoadStatus _status = LoadStatus.initial;
   LoadStatus get status => _status;
@@ -23,6 +26,65 @@ class EbookProvider extends ChangeNotifier {
 
   String _query = '';
   String get query => _query;
+
+  SortOrder _sortOrder = SortOrder.newest;
+  SortOrder get sortOrder => _sortOrder;
+
+  FileTypeFilter _fileTypeFilter = FileTypeFilter.all;
+  FileTypeFilter get fileTypeFilter => _fileTypeFilter;
+
+  // Recently read — ordered most-recent first, max 5
+  final List<Ebook> _recentlyRead = [];
+  List<Ebook> get recentlyRead => List.unmodifiable(_recentlyRead);
+
+  void setSortOrder(SortOrder order) {
+    _sortOrder = order;
+    notifyListeners();
+  }
+
+  void setFileTypeFilter(FileTypeFilter filter) {
+    _fileTypeFilter = filter;
+    notifyListeners();
+  }
+
+  void markAsRead(Ebook ebook) {
+    _recentlyRead.removeWhere((e) => e.id == ebook.id);
+    _recentlyRead.insert(0, ebook);
+    if (_recentlyRead.length > 5) _recentlyRead.removeLast();
+    notifyListeners();
+  }
+
+  List<Ebook> _applyFilters(List<Ebook> source) {
+    var result = List<Ebook>.from(source);
+
+    // File type filter
+    if (_fileTypeFilter != FileTypeFilter.all) {
+      final ext = _fileTypeFilter == FileTypeFilter.pdf ? 'pdf' : 'epub';
+      result = result.where((e) => e.fileType.toLowerCase() == ext).toList();
+    }
+
+    // Sort
+    switch (_sortOrder) {
+      case SortOrder.newest:
+        result.sort((a, b) => b.uploadDate.compareTo(a.uploadDate));
+        break;
+      case SortOrder.oldest:
+        result.sort((a, b) => a.uploadDate.compareTo(b.uploadDate));
+        break;
+      case SortOrder.titleAZ:
+        result.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        break;
+      case SortOrder.authorAZ:
+        result.sort((a, b) {
+          final aAuthor = a.author?.toLowerCase() ?? '';
+          final bAuthor = b.author?.toLowerCase() ?? '';
+          return aAuthor.compareTo(bAuthor);
+        });
+        break;
+    }
+
+    return result;
+  }
 
   Future<void> loadEbooks() async {
     _status = LoadStatus.loading;
@@ -55,7 +117,9 @@ class EbookProvider extends ChangeNotifier {
   }
 
   Future<bool> upload({
-    required File file,
+    String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
     required String title,
     String? author,
     required String fileType,
@@ -65,7 +129,9 @@ class EbookProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final ebook = await _api.uploadEbook(
-        file: file,
+        filePath: filePath,
+        fileBytes: fileBytes,
+        fileName: fileName,
         title: title,
         author: author,
         fileType: fileType,

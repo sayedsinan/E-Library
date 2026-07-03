@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' show SocketException;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../models/ebook.dart';
 
@@ -15,7 +17,7 @@ class ApiService {
   // Override at run time with --dart-define=API_BASE_URL=http://your-host:3000/api
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000/api',
+    defaultValue: 'http://192.168.29.13:3000/api',
   );
 
   Future<List<Ebook>> fetchEbooks() async {
@@ -31,8 +33,14 @@ class ApiService {
     return data.map((e) => Ebook.fromJson(e)).toList();
   }
 
+  /// Upload an ebook.
+  ///
+  /// On native (Android/iOS/desktop): pass [filePath].
+  /// On web: pass [fileBytes] and [fileName] instead (dart:io is unavailable).
   Future<Ebook> uploadEbook({
-    required File file,
+    String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
     required String title,
     String? author,
     required String fileType,
@@ -45,7 +53,26 @@ class ApiService {
     if (author != null && author.isNotEmpty) {
       request.fields['ebook[author]'] = author;
     }
-    request.files.add(await http.MultipartFile.fromPath('ebook[file]', file.path));
+
+    if (kIsWeb) {
+      // Web: use bytes (dart:io File is not available)
+      if (fileBytes == null || fileName == null) {
+        throw ApiException('File data is required for upload.');
+      }
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'ebook[file]',
+          fileBytes,
+          filename: fileName,
+        ),
+      );
+    } else {
+      // Native: use file path
+      if (filePath == null) {
+        throw ApiException('File path is required for upload.');
+      }
+      request.files.add(await http.MultipartFile.fromPath('ebook[file]', filePath));
+    }
 
     final streamed = await request.send();
     final res = await http.Response.fromStream(streamed);
@@ -74,6 +101,8 @@ class ApiService {
       throw ApiException(_extractError(res));
     } on SocketException {
       throw ApiException('Cannot reach server. Check your connection and try again.');
+    } on TimeoutException {
+      throw ApiException('Request timed out. Check that the server is running.');
     } on http.ClientException {
       throw ApiException('Network error. Please try again.');
     }

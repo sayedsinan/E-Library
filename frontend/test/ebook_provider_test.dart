@@ -24,7 +24,9 @@ class FakeApiService implements ApiService {
 
   @override
   Future<Ebook> uploadEbook({
-    required File file,
+    String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
     required String title,
     String? author,
     required String fileType,

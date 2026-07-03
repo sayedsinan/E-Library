@@ -27,7 +27,7 @@ class EbookSerializer
   end
 
   def download_url
-    Rails.application.routes.url_helpers.api_ebook_download_url(@ebook, host: host)
+    Rails.application.routes.url_helpers.download_api_ebook_url(@ebook, host: host)
   end
 
   def host
