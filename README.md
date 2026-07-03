@@ -167,7 +167,7 @@ cd frontend
 flutter pub get
 
 # Run on Android emulator (host machine is reachable at 10.0.2.2)
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
+flutter run --dart-define=API_BASE_URL=yourip:3000/api
 
 # Run on iOS simulator or desktop
 flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
